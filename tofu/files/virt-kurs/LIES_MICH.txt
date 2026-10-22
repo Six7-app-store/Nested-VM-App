@@ -1,0 +1,125 @@
+VIRTUALISIERUNG - KURZREFERENZ
+==============================
+
+Diese VM ist dein Hypervisor. Mit QEMU/KVM und libvirt startest du darin
+eigene VMs ("verschachtelte Virtualisierung", englisch nested
+virtualization). Die VM gehoert dir allein, du hast sudo.
+
+Die Aufgaben liegen in ~/virt-kurs/uebungen/, in dieser Reihenfolge:
+
+  01-erste-vm      eine VM starten, anmelden, abraeumen
+  02-netzwerke     ein eigenes, abgeschottetes Netz fuer zwei VMs
+  03-snapshots     Zustand sichern und zurueckspringen
+  04-openstack     DevStack: ein eigenes OpenStack in dieser VM
+  05-pentest-labor ein Zielsystem in einem Netz ohne Internet untersuchen
+
+
+Wie schnell laufen die VMs hier?
+--------------------------------
+
+  cat /etc/nested-vm/accel
+
+    kvm   mit Hardwarebeschleunigung - fast so schnell wie diese VM selbst
+    tcg   QEMU emuliert die CPU in Software. Das funktioniert, ist aber
+          deutlich langsamer: CirrOS bootet in etwa einer Minute, ein
+          Ubuntu-Gast braucht mehrere Minuten.
+
+  kvm-ok    zeigt, ob die Virtualisierungsfunktion der CPU (vmx bei Intel,
+            svm bei AMD) in dieser VM ankommt. Ob OpenStack sie
+            durchreicht, entscheidet der Betrieb der Cloud.
+
+
+Wo liegt was?
+-------------
+
+  /srv/vms                     deine Platten (Gruppe libvirt darf schreiben)
+  /srv/vms/images/cirros.img   kleines Testsystem, CirrOS (gut 20 MB)
+                               Anmeldung: cirros / gocubsgo
+
+  Platten NICHT in den Home-Ordner legen: den darf der QEMU-Prozess nicht
+  lesen, und der Start bricht mit "Permission denied" ab.
+
+
+virsh - VMs steuern
+-------------------
+
+  virsh list --all                 alle VMs, auch ausgeschaltete
+  virsh start NAME                 einschalten
+  virsh shutdown NAME              sauber herunterfahren (wie der Ein-Knopf)
+  virsh destroy NAME               hart ausschalten (Stecker ziehen)
+  virsh console NAME               serielle Konsole - verlassen mit Strg+]
+  virsh dominfo NAME               CPU, RAM, Zustand
+  virsh domifaddr NAME             IP-Adresse(n) der VM
+  virsh undefine NAME              VM-Definition loeschen (Platte bleibt)
+
+  virsh net-list --all             virtuelle Netze
+  virsh net-dhcp-leases default    vergebene Adressen im Netz "default"
+
+  virsh snapshot-create-as NAME SNAP    Snapshot anlegen
+  virsh snapshot-list NAME              Snapshots anzeigen
+  virsh snapshot-revert NAME SNAP       zum Snapshot zurueck
+  virsh snapshot-delete NAME SNAP       Snapshot loeschen
+
+
+qemu-img - Platten
+------------------
+
+  qemu-img create -f qcow2 platte.qcow2 10G
+        leere Platte; belegt erst Platz, wenn etwas geschrieben wird
+
+  qemu-img create -f qcow2 -F qcow2 -b BASIS neu.qcow2
+        Overlay: liest aus BASIS, schreibt nur in neu.qcow2. So teilen
+        sich viele VMs ein Image, ohne es zu veraendern.
+
+  qemu-img info platte.qcow2
+        Format, Groesse, Basis-Image. Laeuft die VM gerade: -U dazu.
+
+  qemu-img convert -O qcow2 alt.vmdk neu.qcow2
+        Format umwandeln, z. B. von VMware nach qcow2
+
+
+virt-install - eine neue VM
+---------------------------
+
+  virt-install --name test --memory 256 --vcpus 1 --import \
+    --disk path=/srv/vms/test.qcow2,format=qcow2 \
+    --network network=default \
+    --osinfo detect=on,require=off \
+    --graphics none --noautoconsole
+
+  --import          von einer vorhandenen Platte booten, nichts installieren
+  --graphics none   keine Grafikkarte, nur die serielle Konsole
+  --noautoconsole   nicht sofort auf die Konsole springen
+
+  Ohne KVM nimmt virt-install selbst die Emulation und meldet:
+  "KVM acceleration not available, using 'qemu'". Das ist kein Fehler.
+
+
+Netze
+-----
+
+  Das Netz "default" (192.168.122.0/24) macht NAT: die VMs kommen ins
+  Internet, erreichbar sind sie aber nur aus dieser VM heraus. Eigene
+  Netze: Uebung 2.
+
+
+Selbsttest
+----------
+
+  nested-vm-test    startet eine CirrOS-VM, wartet auf ihre Adresse und
+                    raeumt wieder auf. Lief schon einmal beim ersten Start;
+                    das Ergebnis steht in der Begruessung beim Login.
+
+
+Fehlermeldungen
+---------------
+
+  "permission denied" oder "authentication unavailable" bei virsh:
+      einmal ab- und wieder anmelden. Die Gruppe libvirt gilt erst ab der
+      naechsten Anmeldung.
+
+  "Cannot access storage file ... Permission denied":
+      die Platte liegt im Home-Ordner. Nach /srv/vms verschieben.
+
+  "Requested operation is not valid: network 'default' is not active":
+      sudo virsh net-start default

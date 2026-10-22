@@ -1,0 +1,56 @@
+UEBUNG 2 - Virtuelle Netze
+==========================
+
+Ziel: ein eigenes, abgeschottetes Netz anlegen und zwei VMs darin verbinden.
+
+
+1. Die Netzdefinition liegt neben dieser Datei: labnetz.xml. Ansehen und
+   mit dem Netz "default" vergleichen:
+
+     cat ~/virt-kurs/uebungen/02-netzwerke/labnetz.xml
+     virsh net-dumpxml default
+
+   Frage: Welches Element hat "default", das labnetz fehlt?
+
+
+2. Netz anlegen und starten:
+
+     virsh net-define ~/virt-kurs/uebungen/02-netzwerke/labnetz.xml
+     virsh net-start labnetz
+     virsh net-list --all
+     ip addr show virbr10
+
+
+3. Zwei VMs in dieses Netz haengen:
+
+     cd /srv/vms
+     for vm in alpha beta; do
+       qemu-img create -f qcow2 -F qcow2 -b /srv/vms/images/cirros.img $vm.qcow2
+       virt-install --name $vm --memory 256 --vcpus 1 --import \
+         --disk path=/srv/vms/$vm.qcow2,format=qcow2 \
+         --network network=labnetz \
+         --osinfo detect=on,require=off \
+         --graphics none --noautoconsole
+     done
+
+   Nach etwa einer Minute:
+
+     virsh net-dhcp-leases labnetz
+
+
+4. Von alpha aus testen (virsh console alpha, cirros / gocubsgo):
+
+     ping -c 3 ADRESSE-VON-BETA
+     ping -c 3 192.168.50.1
+     ping -c 3 1.1.1.1
+
+   Frage: Welche Pings gehen, welcher nicht - und warum?
+
+
+5. Aufraeumen:
+
+     for vm in alpha beta; do virsh destroy $vm; virsh undefine $vm; rm /srv/vms/$vm.qcow2; done
+     virsh net-destroy labnetz
+     virsh net-undefine labnetz
+
+   Fuer Uebung 5 kannst du labnetz auch stehen lassen.

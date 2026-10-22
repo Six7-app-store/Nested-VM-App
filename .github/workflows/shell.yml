@@ -1,0 +1,50 @@
+# Prueft die Bash-Skripte, die auf der VM die eigentliche Arbeit machen.
+# "bash -n" meldet manche Fehler nur als Warnung auf stderr, mit Exit-Code 0
+# - deshalb gilt hier jede Ausgabe als Fehler.
+
+name: 'Shell'
+
+on:
+  push:
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    name: 'Shell'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntaxpruefung (jede Ausgabe ist ein Fehler)
+        run: |
+          fehler=0
+          for f in tofu/files/*.sh; do
+            if ! out="$(bash -n "$f" 2>&1)"; then
+              echo "::error file=$f::Syntaxfehler"
+              fehler=1
+            fi
+            if [ -n "$out" ]; then
+              echo "::error file=$f::$out"
+              fehler=1
+            fi
+          done
+          exit "$fehler"
+
+      # shellcheck ist auf ubuntu-latest vorinstalliert. profile.sh traegt
+      # ihre Shell (sh) selbst im Kopf.
+      - name: ShellCheck
+        run: |
+          shellcheck --shell=bash tofu/files/nested-vm-setup.sh tofu/files/nested-vm-test.sh
+          shellcheck tofu/files/profile.sh

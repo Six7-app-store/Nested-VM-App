@@ -1,0 +1,9 @@
+# OpenTofu (Namen wie OpenTofu sie selbst vergibt)
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfvars
+
+# OS files
+.DS_Store

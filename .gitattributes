@@ -1,0 +1,16 @@
+# Alles im Repo landet am Ende auf einer Linux-VM: cloud-init legt Skripte
+# und Lernmaterial beim ersten Boot dort ab.
+#
+# Ohne diese Datei wuerde Git bei core.autocrlf=true (Standard auf Windows)
+# die Skripte beim Auschecken auf CRLF umschreiben. Auf der VM scheitert dann
+# schon "set -euo pipefail\r", und die Einrichtung bricht mit Meldungen ab,
+# die nichts mit der eigentlichen Ursache zu tun haben.
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.tofu  text eol=lf
+*.hcl   text eol=lf
+*.yml   text eol=lf
+*.txt   text eol=lf
+*.xml   text eol=lf
+*.conf  text eol=lf

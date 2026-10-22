@@ -1,0 +1,55 @@
+UEBUNG 3 - Snapshots
+====================
+
+Ziel: einen Zustand sichern, die VM veraendern und zurueckspringen.
+
+
+1. Eine VM "snap" anlegen, wie in Uebung 1:
+
+     cd /srv/vms
+     qemu-img create -f qcow2 -F qcow2 -b /srv/vms/images/cirros.img snap.qcow2
+     virt-install --name snap --memory 256 --vcpus 1 --import \
+       --disk path=/srv/vms/snap.qcow2,format=qcow2 \
+       --network network=default \
+       --osinfo detect=on,require=off \
+       --graphics none --noautoconsole
+
+   Warten, bis sie gebootet hat (virsh console snap, dann Strg+]).
+
+
+2. Snapshot anlegen und ansehen:
+
+     virsh snapshot-create-as snap vorher --description "frisch gebootet"
+     virsh snapshot-list snap
+
+
+3. In der VM etwas veraendern (virsh console snap):
+
+     echo "war hier" > /home/cirros/spur.txt
+     ls /home/cirros
+
+   Zurueck mit Strg+]
+
+
+4. Zurueckspringen und nachsehen:
+
+     virsh snapshot-revert snap vorher
+     virsh console snap
+     ls /home/cirros
+
+   Frage: Wo ist spur.txt geblieben? Musste die VM neu booten?
+
+
+5. Wo liegt der Snapshot?
+
+     qemu-img info -U /srv/vms/snap.qcow2
+
+   Abschnitt "Snapshot list". Frage: Warum braucht es hier -U?
+
+
+6. Aufraeumen (erst den Snapshot, sonst verweigert undefine):
+
+     virsh snapshot-delete snap vorher
+     virsh destroy snap
+     virsh undefine snap
+     rm /srv/vms/snap.qcow2

@@ -1,0 +1,62 @@
+UEBUNG 1 - Die erste VM in der VM
+=================================
+
+Ziel: eine CirrOS-VM starten, sich darin anmelden und sie wieder abraeumen.
+
+
+1. Eine eigene Platte anlegen, die auf dem Testimage aufbaut:
+
+     cd /srv/vms
+     qemu-img create -f qcow2 -F qcow2 -b /srv/vms/images/cirros.img erste.qcow2
+     qemu-img info erste.qcow2
+     ls -lh erste.qcow2 /srv/vms/images/cirros.img
+
+   Frage: Warum ist erste.qcow2 so viel kleiner als das Image?
+
+
+2. Die VM starten:
+
+     virt-install --name erste --memory 256 --vcpus 1 --import \
+       --disk path=/srv/vms/erste.qcow2,format=qcow2 \
+       --network network=default \
+       --osinfo detect=on,require=off \
+       --graphics none --noautoconsole
+
+     virsh list --all
+     virsh dominfo erste
+
+
+3. Auf die Konsole gehen und anmelden (Benutzer cirros, Passwort gocubsgo):
+
+     virsh console erste
+
+   Erscheint nichts, einmal Enter druecken. Ohne KVM kann der Boot eine
+   Minute dauern. In der VM:
+
+     uname -a
+     ip addr
+     ping -c 3 192.168.122.1
+
+   Zurueck in deine VM mit Strg+]
+
+
+4. Von aussen auf die VM:
+
+     virsh domifaddr erste
+     ssh cirros@ADRESSE
+
+   ADRESSE ist die aus domifaddr, ohne "/24".
+
+
+5. Aufraeumen:
+
+     virsh destroy erste
+     virsh undefine erste
+     rm /srv/vms/erste.qcow2
+
+
+Fragen:
+  - Was ist der Unterschied zwischen "virsh shutdown" und "virsh destroy"?
+  - Was zeigt "cat /etc/nested-vm/accel", und was bedeutet das fuer die
+    Geschwindigkeit der VM?
+  - 192.168.122.1 - wer antwortet da?

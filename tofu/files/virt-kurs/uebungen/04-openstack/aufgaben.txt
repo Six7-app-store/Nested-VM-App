@@ -1,0 +1,65 @@
+UEBUNG 4 - Ein eigenes OpenStack mit DevStack
+=============================================
+
+Ziel: in dieser VM ein komplettes OpenStack aufsetzen und darin eine
+Instanz starten - also eine VM, die in einem OpenStack in einer VM in
+OpenStack laeuft.
+
+DevStack ist ein Entwicklungswerkzeug, kein Produktivsystem. Es baut die
+VM tiefgreifend um. Geht etwas schief: VM im App Store neu ausrollen
+lassen, statt sie zu reparieren.
+
+
+0. Reicht die VM?
+
+     free -h
+     df -h /
+     cat /etc/nested-vm/accel
+
+   DevStack braucht etwa 8 GB Arbeitsspeicher und 40 GB Platte. Mit der
+   Standardplatte von 10 GB laeuft es voll - dann beim Deployment den
+   Flavor win11.medium oder eine Festplatte ab 40 GB waehlen lassen.
+
+
+1. Eigenen Benutzer fuer DevStack anlegen (so verlangt es DevStack):
+
+     sudo useradd -s /bin/bash -d /opt/stack -m stack
+     sudo chmod +x /opt/stack
+     echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
+
+
+2. DevStack holen und die Konfiguration dazulegen:
+
+     sudo -u stack -i git clone https://opendev.org/openstack/devstack /opt/stack/devstack
+     sudo install -o stack -g stack -m 0644 \
+       ~/virt-kurs/uebungen/04-openstack/local.conf /opt/stack/devstack/local.conf
+
+   Zeigt /etc/nested-vm/accel "kvm", in /opt/stack/devstack/local.conf
+   LIBVIRT_TYPE=qemu auf LIBVIRT_TYPE=kvm aendern.
+
+
+3. Installieren (dauert 20 bis 40 Minuten, ohne KVM laenger):
+
+     sudo -u stack -i
+     cd devstack
+     ./stack.sh
+
+   Am Ende nennt stack.sh die Adresse des Dashboards (Horizon).
+
+
+4. Als stack-Benutzer im Projekt "demo" eine Instanz starten:
+
+     source ~/devstack/openrc demo demo
+     openstack image list
+     openstack flavor list
+     openstack server create --image cirros-0.6.3-x86_64-disk \
+       --flavor m1.tiny --network private test
+     openstack server list
+
+   Den Image-Namen aus "openstack image list" nehmen, falls er abweicht.
+
+
+Fragen:
+  - Welche Dienste hat DevStack gestartet? (systemctl list-units "devstack@*")
+  - Mit welchem libvirt-Typ startet Nova hier die Instanz, und wie
+    viele Ebenen Virtualisierung liegen zwischen ihr und der echten CPU?

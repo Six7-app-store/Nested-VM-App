@@ -1,0 +1,49 @@
+# Prueft Formatierung, Syntax und das Verhalten des OpenTofu-Codes (fmt,
+# validate, test mit gemockten Providern). Kein plan/apply: das Ausrollen
+# uebernimmt der App-Store-Worker, und dieses Repo kennt bewusst keine
+# OpenStack-Zugangsdaten.
+
+name: 'OpenTofu'
+
+on:
+  push:
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  opentofu:
+    name: 'OpenTofu'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: tofu
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # Gleiche Version wie im App-Store-Worker (ADR 0010)
+    - name: Setup OpenTofu
+      uses: opentofu/setup-opentofu@v2
+      with:
+        tofu_version: 1.13.1
+        tofu_wrapper: false
+
+    - name: OpenTofu Init
+      run: tofu init -backend=false
+
+    - name: OpenTofu Format
+      run: tofu fmt -check -recursive
+
+    - name: OpenTofu Validate
+      run: tofu validate
+
+    - name: OpenTofu Test
+      run: tofu test

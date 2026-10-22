@@ -1,0 +1,14 @@
+<!--
+  Isoliertes Netz: ohne <forward> gibt es weder NAT noch Routing nach
+  aussen. Die VMs erreichen sich gegenseitig und die aeussere VM
+  (192.168.50.1), aber nicht das Internet.
+-->
+<network>
+  <name>labnetz</name>
+  <bridge name='virbr10'/>
+  <ip address='192.168.50.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.50.100' end='192.168.50.200'/>
+    </dhcp>
+  </ip>
+</network>
